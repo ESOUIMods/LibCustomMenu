@@ -1,11 +1,9 @@
 -- authors: votan, sirinsidiator
 -- thanks to: baertram & circonian
 
--- Register with LibStub
-local libName, libVersion = "LibCustomMenu", 682
-local lib, oldminor = LibStub and LibStub:NewLibrary(libName, libVersion)
-if LibStub and not lib then return end -- the same or newer version of this lib is already loaded into memory
-lib = lib or { }
+local libName, libVersion = "LibCustomMenu", 683
+local lib
+lib = {}
 
 local wm = WINDOW_MANAGER
 
