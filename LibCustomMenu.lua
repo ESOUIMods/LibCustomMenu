@@ -1,9 +1,11 @@
 -- authors: votan, sirinsidiator
 -- thanks to: baertram & circonian
 
-local libName, libVersion = "LibCustomMenu", 683
-local lib
-lib = {}
+-- Register with LibStub
+local MAJOR, MINOR = "LibCustomMenu", 6.8
+local lib, oldminor = LibStub and LibStub:NewLibrary(MAJOR, MINOR)
+if LibStub and not lib then return end -- the same or newer version of this lib is already loaded into memory
+lib = lib or { }
 
 local wm = WINDOW_MANAGER
 
@@ -675,7 +677,7 @@ end
 
 local function OnAddonLoaded(event, name)
 	if name:find("^ZO_") then return end
-	EVENT_MANAGER:UnregisterForEvent(libName, EVENT_ADD_ON_LOADED)
+	EVENT_MANAGER:UnregisterForEvent(MAJOR, EVENT_ADD_ON_LOADED)
 	lib.itemPool = ZO_ObjectPool:New(MenuItemFactory, ResetMenuItem)
 	lib.submenuPool = ZO_ObjectPool:New(SubMenuItemFactory, ResetMenuItem)
 	lib.checkBoxPool = ZO_ObjectPool:New(CheckBoxFactory, ResetCheckBox)
@@ -697,7 +699,7 @@ lib.CATEGORY_TERTIARY = 4
 lib.CATEGORY_QUATERNARY = 5
 lib.CATEGORY_LATE = 6
 
-EVENT_MANAGER:UnregisterForEvent(libName, EVENT_ADD_ON_LOADED)
-EVENT_MANAGER:RegisterForEvent(libName, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+EVENT_MANAGER:UnregisterForEvent(MAJOR, EVENT_ADD_ON_LOADED)
+EVENT_MANAGER:RegisterForEvent(MAJOR, EVENT_ADD_ON_LOADED, OnAddonLoaded)
 
 LibCustomMenu = lib
