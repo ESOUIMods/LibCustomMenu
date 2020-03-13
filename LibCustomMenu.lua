@@ -1,11 +1,19 @@
 -- authors: votan, sirinsidiator
 -- thanks to: baertram & circonian
 
--- Register with LibStub
-local MAJOR, MINOR = "LibCustomMenu", 6.8
-local lib, oldminor = LibStub and LibStub:NewLibrary(MAJOR, MINOR)
-if LibStub and not lib then return end -- the same or newer version of this lib is already loaded into memory
-lib = lib or { }
+local libName, libVersion = "LibCustomMenu", 682
+local libLoaded
+local lib, oldminor
+if(not LibStub) then
+    lib = {}
+else
+    -- Register with LibStub
+    lib, oldminor = LibStub:NewLibrary(libName, libVersion)
+    if not lib then
+        return -- already loaded and no upgrade necessary
+    end
+end
+if not lib then return end
 
 local wm = WINDOW_MANAGER
 
