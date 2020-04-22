@@ -1,8 +1,7 @@
 -- authors: votan, sirinsidiator
 -- thanks to: baertram & circonian
 
-local libName, libVersion = "LibCustomMenu", 691
-local libLoaded
+local libName, libVersion = "LibCustomMenu", 692
 local lib, oldminor
 if(not LibStub) then
     lib = {}
@@ -544,26 +543,6 @@ local function DividerFactory(pool)
 end
 
 ---- Hook points for context menu -----
--- local function PreHook(objectTable, existingFunctionName, hookFunction)
--- 	if type(objectTable) == "string" then
--- 		hookFunction = existingFunctionName
--- 		existingFunctionName = objectTable
--- 		objectTable = _G
--- 	end
-
--- 	local existingFn = objectTable[existingFunctionName]
--- 	local newFn
--- 	if existingFn and type(existingFn) == "function" then
--- 		newFn = function(...)
--- 			hookFunction(...)
--- 			return existingFn(...)
--- 		end
--- 	else
--- 		newFn = hookFunction
--- 	end
--- 	objectTable[existingFunctionName] = newFn
--- end
-
 lib.enabledSpecialKeys = lib.enabledSpecialKeys or {}
 
 local function HookContextMenu()
@@ -744,6 +723,11 @@ function lib:RegisterSpecialKeyContextMenu(func, ...)
 	self.contextMenuRegistry:RegisterCallback("Special", func, ...)
 end
 
+function lib:RegisterPlayerContextMenu(func, category, ...)
+	category = zo_clamp(category or self.CATEGORY_LATE, self.CATEGORY_EARLY, self.CATEGORY_LATE)
+	self.playerContextMenuRegistry:RegisterCallback(category, func, ...)
+end
+
 function lib:RegisterKeyStripEnter(func, category, ...)
 	category = zo_clamp(category or self.CATEGORY_LATE, self.CATEGORY_EARLY, self.CATEGORY_LATE)
 	self.keybindRegistry:RegisterCallback(category, func, ...)
@@ -756,6 +740,40 @@ end
 function lib:EnableSpecialKeyContextMenu(key)
 	assert(key == KEY_CTRL or key == KEY_ALT or key == KEY_SHIFT or key == KEY_COMMAND, "supported keys are: KEY_CTRL, KEY_ALT, KEY_SHIFT, KEY_COMMAND")
 	lib.enabledSpecialKeys[key] = true
+end
+
+do
+	local registry, category, playerName, rawName
+	local function OneTimeHook(method, hook)
+		local org = _G[method]
+		_G[method] = function(...)
+			_G[method] = org
+			hook()
+			return org(...)
+		end
+	end
+	local function addCategory()
+		category = category + 1
+		registry:FireCallbacks(category, playerName, rawName)
+	end
+	local function appendEntries()
+		while category < lib.CATEGORY_LATE do
+			addCategory()
+		end
+	end
+	local function insertEntries()
+		while category < lib.CATEGORY_SECONDARY do
+			addCategory()
+		end
+		OneTimeHook("ZO_Menu_GetNumMenuItems", appendEntries)
+	end
+	local orgShowPlayerContextMenu = SharedChatSystem.ShowPlayerContextMenu
+	function SharedChatSystem.ShowPlayerContextMenu(...)
+		playerName, rawName = select(2, ...)
+		registry, category = lib.playerContextMenuRegistry, 0
+		OneTimeHook("IsGroupModificationAvailable", insertEntries)
+		return orgShowPlayerContextMenu(...)
+	end
 end
 
 ---- Init -----
@@ -778,6 +796,7 @@ end
 
 lib.contextMenuRegistry = lib.contextMenuRegistry or ZO_CallbackObject:New()
 lib.keybindRegistry = lib.keybindRegistry or ZO_CallbackObject:New()
+lib.playerContextMenuRegistry = lib.playerContextMenuRegistry or ZO_CallbackObject:New()
 
 lib.CATEGORY_EARLY = 1
 lib.CATEGORY_PRIMARY = 2
