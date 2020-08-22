@@ -1,7 +1,7 @@
 -- authors: votan, sirinsidiator
 -- thanks to: baertram & circonian
 
-local libName, libVersion = "LibCustomMenu", 692
+local libName, libVersion = "LibCustomMenu", 693
 local lib, oldminor
 if(not LibStub) then
     lib = {}
