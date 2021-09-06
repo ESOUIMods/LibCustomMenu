@@ -839,6 +839,11 @@ function lib:RegisterPlayerContextMenu(func, category, ...)
 	self.playerContextMenuRegistry:RegisterCallback(category, func, ...)
 end
 
+function lib:RegisterGuildRosterContextMenu(func, category, ...)
+	category = zo_clamp(category or self.CATEGORY_LATE, self.CATEGORY_EARLY, self.CATEGORY_LATE)
+	self.guildRosterContextMenuRegistry:RegisterCallback(category, func, ...)
+end
+
 function lib:RegisterKeyStripEnter(func, category, ...)
 	category = zo_clamp(category or self.CATEGORY_LATE, self.CATEGORY_EARLY, self.CATEGORY_LATE)
 	self.keybindRegistry:RegisterCallback(category, func, ...)
@@ -853,16 +858,18 @@ function lib:EnableSpecialKeyContextMenu(key)
 	lib.enabledSpecialKeys[key] = true
 end
 
+local function OneTimeHook(method, hook)
+	local org = _G[method]
+	_G[method] = function(...)
+		_G[method] = org
+		hook()
+		return org(...)
+	end
+end
+
 local function HookShowPlayerContextMenu()
 	local registry, category, playerName, rawName
-	local function OneTimeHook(method, hook)
-		local org = _G[method]
-		_G[method] = function(...)
-			_G[method] = org
-			hook()
-			return org(...)
-		end
-	end
+
 	local function addCategory()
 		category = category + 1
 		registry:FireCallbacks(category, playerName, rawName)
@@ -887,6 +894,48 @@ local function HookShowPlayerContextMenu()
 	end
 end
 
+local function HookGuildRosterContextMenu()
+	local registry, category, rowData, showing
+
+	local function addCategory()
+		category = category + 1
+		registry:FireCallbacks(category, rowData)
+	end
+	local function appendEntries()
+		while category < lib.CATEGORY_LATE do
+			addCategory()
+		end
+	end
+	local function insertEntries()
+		while category < lib.CATEGORY_SECONDARY do
+			addCategory()
+		end
+	end
+	local orgGuildRosterRow_OnMouseUp = GUILD_ROSTER_KEYBOARD.GuildRosterRow_OnMouseUp
+	function GUILD_ROSTER_KEYBOARD.GuildRosterRow_OnMouseUp(...)
+		local manager, control, button, upInside = ...
+
+		if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
+			local data = ZO_ScrollList_GetData(control)
+			showing = data ~= nil
+			if data then
+				rowData = data
+				registry, category = lib.guildRosterContextMenuRegistry, 0
+				OneTimeHook("GetPlayerGuildMemberIndex", insertEntries)
+			end
+		end
+		return orgGuildRosterRow_OnMouseUp(...)
+	end
+	local orgShowMenu = GUILD_ROSTER_KEYBOARD.ShowMenu
+	function GUILD_ROSTER_KEYBOARD.ShowMenu(...)
+		if showing then
+			appendEntries()
+			showing = false
+		end
+		return orgShowMenu(...)
+	end
+end
+
 ---- Init -----
 
 local identifier = MAJOR .. tostring(GetTimeStamp())
@@ -908,11 +957,22 @@ local function OnAddonLoaded(event, name)
 	HookAddSlotAction()
 	HookContextMenu()
 	HookShowPlayerContextMenu()
+
+	-- for ShissuContextMenu. Little hook war.
+	EVENT_MANAGER:RegisterForEvent(
+		identifier,
+		EVENT_PLAYER_ACTIVATED,
+		function()
+			EVENT_MANAGER:UnregisterForEvent(identifier, EVENT_PLAYER_ACTIVATED)
+			zo_callLater(HookGuildRosterContextMenu, 200)
+		end
+	)
 end
 
 lib.contextMenuRegistry = lib.contextMenuRegistry or ZO_CallbackObject:New()
 lib.keybindRegistry = lib.keybindRegistry or ZO_CallbackObject:New()
 lib.playerContextMenuRegistry = lib.playerContextMenuRegistry or ZO_CallbackObject:New()
+lib.guildRosterContextMenuRegistry = lib.guildRosterContextMenuRegistry or ZO_CallbackObject:New()
 
 lib.CATEGORY_EARLY = 1
 lib.CATEGORY_PRIMARY = 2
