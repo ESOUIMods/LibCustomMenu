@@ -82,10 +82,10 @@ local function runTooltip(control, inside)
 		local text = GetValueOrCallback(control.tooltip, control, inside)
 		if inside then
 			if type(text) == "string" and text ~= "" then
-				InitializeTooltip(InformationTooltip, control, BOTTOM, 0, -10)
+				InitializeTooltip(InformationTooltip, control:GetParent(), BOTTOM, 0, -10)
 				SetTooltipText(InformationTooltip, text)
 			end
-		elseif InformationTooltip:GetOwner() == control then
+		elseif InformationTooltip:GetOwner() == control:GetParent() then
 			ClearTooltip(InformationTooltip)
 		end
 	end
@@ -193,6 +193,8 @@ function Submenu:Initialize(name)
 			self:Clear()
 		end
 	)
+	submenuControl:SetDrawLayer(ZO_Menu:GetDrawLayer())
+	submenuControl:SetDrawTier(ZO_Menu:GetDrawTier())
 	submenuControl:SetDrawLevel(ZO_Menu:GetDrawLevel() + 1)
 
 	local bg = submenuControl:CreateControl("$(parent)BG", CT_BACKDROP)
@@ -243,6 +245,7 @@ function Submenu:Initialize(name)
 
 	local function ItemFactory(pool)
 		local control = CreateControlFromVirtual("ZO_SubMenuItem", submenuControl, "ZO_MenuItem", pool:GetNextControlId())
+		control:SetDrawLevel(3)
 		control.nameLabel = GetControl(control, "Name")
 
 		control:SetHandler("OnMouseEnter", MouseEnter)
@@ -291,6 +294,7 @@ function Submenu:Initialize(name)
 	end
 	local function CheckBoxFactory(pool)
 		local control = CreateControlFromVirtual("ZO_CustomSubMenuItemCheckButton", submenuControl, "ZO_CheckButton", pool:GetNextControlId())
+		control:SetDrawLevel(3)
 		control.nameLabel = control
 
 		control:SetHandler("OnMouseEnter", CheckBoxMouseEnter)
